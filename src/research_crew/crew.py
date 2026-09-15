@@ -12,10 +12,12 @@ DEFAULT_MODEL = "anthropic/claude-opus-5"
 
 
 def build_llm() -> LLM:
-    return LLM(
-        model=os.getenv("MODEL", DEFAULT_MODEL),
-        temperature=float(os.getenv("MODEL_TEMPERATURE", "0.2")),
-    )
+    # Algunos modelos (por ejemplo los de razonamiento de OpenAI) solo aceptan
+    # la temperatura por defecto, así que solo se envía si está configurada.
+    kwargs: dict = {"model": os.getenv("MODEL", DEFAULT_MODEL)}
+    if os.getenv("MODEL_TEMPERATURE"):
+        kwargs["temperature"] = float(os.environ["MODEL_TEMPERATURE"])
+    return LLM(**kwargs)
 
 
 @CrewBase
