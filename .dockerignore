@@ -1,0 +1,8 @@
+.git
+.venv
+.env
+__pycache__
+*.pyc
+output/
+*.md
+!README.md
