@@ -1,17 +1,38 @@
 research_task:
   description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
+    Identificá exactamente 3 datos relevantes sobre {topic}.
+    Cada dato debe ser concreto y caber en una oración.
+    Indicá en cada uno si proviene de tu conocimiento general (no verificado)
+    o de una herramienta.
   expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
+    Una lista de 3 viñetas en español, cada una con el dato y su origen entre paréntesis.
   agent: researcher
 
 reporting_task:
   description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
+    Con los 3 datos recibidos, escribí un resumen de 5 líneas como máximo sobre {topic}.
+    No agregues información que no esté en los datos.
   expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
+    Un párrafo en español de 5 líneas como máximo, sin títulos ni formato Markdown.
   agent: reporting_analyst
+
+accountability_task:
+  description: >
+    Rendí cuentas de esta ejecución sobre {topic}. En el contexto recibís, en este orden:
+    primero la salida de la tarea "research_task", ejecutada por el agente Investigador
+    (3 datos con su origen); después la salida de la tarea "reporting_task", ejecutada
+    por el agente Redactor (el resumen). Tu propia tarea es "accountability_task".
+    Describí esos pasos, uno por tarea, con qué hizo cada agente y qué resultado dejó.
+    En el campo resumen copiá textual el resumen del Redactor, sin reescribirlo.
+    Listá las limitaciones reales de la corrida (por ejemplo: sin acceso a internet,
+    sin datos propios, datos no verificados).
+    Asigná un nivel de confianza global: alta, media o baja.
+    Por último respondé esta pregunta del usuario sobre la ejecución: "{pregunta}"
+    Si la pregunta está vacía, respondé qué pudo y qué no pudo hacer el equipo.
+  expected_output: >
+    Un objeto estructurado con el tema, los pasos ejecutados, las limitaciones,
+    la confianza y la respuesta a la pregunta.
+  agent: relator
+  context:
+    - research_task
+    - reporting_task

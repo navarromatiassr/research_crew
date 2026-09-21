@@ -44,7 +44,7 @@ crewai install
 crewai run
 ```
 
-El reporte queda en `output/report.md`.
+El crew es una prueba end-to-end mínima: el Investigador saca 3 datos sobre `topic`, el Redactor escribe un resumen de 5 líneas, y el Relator rinde cuentas en un JSON estructurado (pasos, limitaciones, confianza) y responde el input `pregunta`. El resumen queda en `output/resumen.md`.
 
 ## API HTTP (self-hosted)
 
@@ -59,12 +59,13 @@ Documentación interactiva en `http://localhost:8000/docs`.
 | GET    | `/health`             | Estado del servicio y modelo configurado            |
 | GET    | `/inputs`             | Inputs requeridos y opcionales                      |
 | POST   | `/kickoff`            | Lanza una ejecución, devuelve `kickoff_id` (202)    |
-| GET    | `/status/{kickoff_id}`| Estado, resultado o error de la ejecución           |
+| GET    | `/status/{kickoff_id}`| Estado, resultado, salida por tarea y tokens        |
+| POST   | `/ask/{kickoff_id}`   | Pregunta al Relator sobre una corrida terminada     |
 
 Ejemplo:
 
 ```bash
-curl -X POST http://localhost:8000/kickoff -H "content-type: application/json" -d "{\"inputs\": {\"topic\": \"Agentes de IA\"}}"
+curl -X POST http://localhost:8000/kickoff -H "content-type: application/json" -d "{\"inputs\": {\"topic\": \"yerba mate\", \"pregunta\": \"Que fue verificado?\"}}"
 ```
 
 ```bash
@@ -120,4 +121,4 @@ plataforma. Una vez desplegado, AMP expone `/inputs`, `/kickoff` y `/status/{id}
 - Cambiá los agentes en `src/research_crew/config/agents.yaml`.
 - Cambiá las tareas en `src/research_crew/config/tasks.yaml`.
 - Agregá herramientas en `src/research_crew/tools/` y pasalas en `crew.py`.
-- Los placeholders `{topic}` y `{current_year}` se completan con los inputs.
+- Los placeholders `{topic}` y `{pregunta}` se completan con los inputs. En AMP hay que completar ambos al disparar.

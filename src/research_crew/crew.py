@@ -1,13 +1,15 @@
 import os
+from typing import Literal
 
 from crewai import LLM, Agent, Crew, Process, Task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, crew, task
+from pydantic import BaseModel, Field
 
 # El modelo se configura por entorno para poder cambiarlo sin tocar código.
 # Formato "<proveedor>/<modelo>", por ejemplo:
 #   anthropic/claude-opus-5   (requiere ANTHROPIC_API_KEY)
-#   openai/gpt-4o             (requiere OPENAI_API_KEY)
+#   openai/gpt-5.6-terra      (requiere OPENAI_API_KEY)
 DEFAULT_MODEL = "anthropic/claude-opus-5"
 
 
@@ -20,40 +22,68 @@ def build_llm() -> LLM:
     return LLM(**kwargs)
 
 
+class PasoEjecutado(BaseModel):
+    paso: str = Field(description="Nombre de la tarea ejecutada")
+    agente: str = Field(description="Rol del agente que la ejecutó")
+    que_hizo: str = Field(description="Qué hizo, en una oración")
+    resultado: str = Field(description="Resultado resumido en una o dos oraciones")
+
+
+class RendicionDeCuentas(BaseModel):
+    """Salida final del crew: qué se hizo, qué no, y con qué confianza."""
+
+    tema: str
+    resumen: str = Field(description="El resumen final producido por el redactor")
+    pasos: list[PasoEjecutado]
+    limitaciones: list[str] = Field(description="Qué no pudo hacer o verificar el equipo")
+    confianza: Literal["alta", "media", "baja"]
+    respuesta_a_pregunta: str = Field(description="Respuesta a la pregunta del usuario")
+
+
 @CrewBase
 class ResearchCrew:
-    """Crew de investigación: un investigador y un analista de reportes."""
+    """Crew de prueba end-to-end: investiga, resume y rinde cuentas."""
 
     agents: list[BaseAgent]
     tasks: list[Task]
 
-    @agent
-    def researcher(self) -> Agent:
+    def _agent(self, name: str) -> Agent:
         return Agent(
-            config=self.agents_config["researcher"],  # type: ignore[index]
+            config=self.agents_config[name],  # type: ignore[index]
             llm=build_llm(),
+            max_iter=5,
+            max_execution_time=120,
             verbose=True,
         )
+
+    @agent
+    def researcher(self) -> Agent:
+        return self._agent("researcher")
 
     @agent
     def reporting_analyst(self) -> Agent:
-        return Agent(
-            config=self.agents_config["reporting_analyst"],  # type: ignore[index]
-            llm=build_llm(),
-            verbose=True,
-        )
+        return self._agent("reporting_analyst")
+
+    @agent
+    def relator(self) -> Agent:
+        return self._agent("relator")
 
     @task
     def research_task(self) -> Task:
-        return Task(
-            config=self.tasks_config["research_task"],  # type: ignore[index]
-        )
+        return Task(config=self.tasks_config["research_task"])  # type: ignore[index]
 
     @task
     def reporting_task(self) -> Task:
         return Task(
             config=self.tasks_config["reporting_task"],  # type: ignore[index]
-            output_file="output/report.md",
+            output_file="output/resumen.md",
+        )
+
+    @task
+    def accountability_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["accountability_task"],  # type: ignore[index]
+            output_pydantic=RendicionDeCuentas,
         )
 
     @crew
