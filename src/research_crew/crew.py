@@ -1,9 +1,10 @@
+import json
 import os
 from typing import Literal
 
 from crewai import LLM, Agent, Crew, Process, Task
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from crewai.project import CrewBase, agent, crew, task
+from crewai.project import CrewBase, after_kickoff, agent, crew, task
 from pydantic import BaseModel, Field
 
 # El modelo se configura por entorno para poder cambiarlo sin tocar código.
@@ -11,6 +12,10 @@ from pydantic import BaseModel, Field
 #   anthropic/claude-opus-5   (requiere ANTHROPIC_API_KEY)
 #   openai/gpt-5.6-terra      (requiere OPENAI_API_KEY)
 DEFAULT_MODEL = "anthropic/claude-opus-5"
+
+
+def human_review_enabled() -> bool:
+    return os.getenv("HUMAN_REVIEW", "false").strip().lower() == "true"
 
 
 def build_llm() -> LLM:
@@ -38,6 +43,10 @@ class RendicionDeCuentas(BaseModel):
     limitaciones: list[str] = Field(description="Qué no pudo hacer o verificar el equipo")
     confianza: Literal["alta", "media", "baja"]
     respuesta_a_pregunta: str = Field(description="Respuesta a la pregunta del usuario")
+    revision_humana_activada: bool | None = Field(
+        default=None,
+        description="No completar. Lo fija el sistema según la configuración del entorno.",
+    )
 
 
 @CrewBase
@@ -81,7 +90,7 @@ class ResearchCrew:
         return Task(
             config=self.tasks_config["reporting_task"],  # type: ignore[index]
             output_file="output/resumen.md",
-            human_input=os.getenv("HUMAN_REVIEW", "false").lower() == "true",
+            human_input=human_review_enabled(),
         )
 
     @task
@@ -90,6 +99,15 @@ class ResearchCrew:
             config=self.tasks_config["accountability_task"],  # type: ignore[index]
             output_pydantic=RendicionDeCuentas,
         )
+
+    @after_kickoff
+    def stamp_environment(self, output):
+        """Agrega a la salida datos que fija el sistema, no el modelo."""
+        enabled = human_review_enabled()
+        if output.pydantic is not None:
+            output.pydantic.revision_humana_activada = enabled
+            output.raw = json.dumps(output.pydantic.model_dump(), ensure_ascii=False)
+        return output
 
     @crew
     def crew(self) -> Crew:
