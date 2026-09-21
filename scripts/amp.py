@@ -79,11 +79,14 @@ def main() -> None:
     elif cmd == "status":
         show(parsed_status(c, args[0]))
     elif cmd == "resume":
+        # La API real exige camelCase (executionId, taskId), distinto de lo que
+        # muestra la documentación. Devuelve un kickoff_id nuevo: la corrida
+        # reanudada continúa bajo ese id. El taskId real llega por el webhook.
         body = {
-            "execution_id": args[0],
-            "task_id": args[1],
-            "is_approve": args[2].lower().startswith("aprob"),
-            "human_feedback": args[3] if len(args) > 3 else "Aprobado",
+            "executionId": args[0],
+            "taskId": args[1],
+            "isApprove": args[2].lower().startswith("aprob"),
+            "humanFeedback": args[3] if len(args) > 3 else "Aprobado",
         }
         r = c.post("/resume", json=body)
         print(r.status_code)
