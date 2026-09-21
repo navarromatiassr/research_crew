@@ -74,9 +74,14 @@ class ResearchCrew:
 
     @task
     def reporting_task(self) -> Task:
+        # Human in the loop: con HUMAN_REVIEW=true la ejecución se pausa al terminar
+        # el resumen para que una persona lo apruebe o pida cambios. En local la
+        # pausa es por consola; en AMP queda en "Pending Human Input" y se reanuda
+        # con POST /resume. Apagado por defecto para no bloquear corridas automáticas.
         return Task(
             config=self.tasks_config["reporting_task"],  # type: ignore[index]
             output_file="output/resumen.md",
+            human_input=os.getenv("HUMAN_REVIEW", "false").lower() == "true",
         )
 
     @task
