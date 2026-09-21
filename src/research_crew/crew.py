@@ -45,7 +45,7 @@ class RendicionDeCuentas(BaseModel):
     respuesta_a_pregunta: str = Field(description="Respuesta a la pregunta del usuario")
     revision_humana_activada: bool | None = Field(
         default=None,
-        description="No completar. Lo fija el sistema según la configuración del entorno.",
+        description="Copiar exactamente el dato del sistema indicado en la tarea.",
     )
 
 
@@ -95,10 +95,17 @@ class ResearchCrew:
 
     @task
     def accountability_task(self) -> Task:
-        return Task(
-            config=self.tasks_config["accountability_task"],  # type: ignore[index]
-            output_pydantic=RendicionDeCuentas,
+        # AMP publica la salida cruda de la última tarea, así que los datos que fija
+        # el sistema se le pasan al Relator en la descripción para que los copie.
+        config = dict(self.tasks_config["accountability_task"])  # type: ignore[index]
+        estado = "true" if human_review_enabled() else "false"
+        config["description"] = (
+            f"{config['description']} "
+            f"Dato del sistema, copialo sin cambiarlo: revision_humana_activada = {estado}. "
+            "Si es true, una persona revisó y aprobó el resumen antes de tu tarea; "
+            "si es false, nadie lo revisó. Mencionalo en las limitaciones cuando sea false."
         )
+        return Task(config=config, output_pydantic=RendicionDeCuentas)
 
     @after_kickoff
     def stamp_environment(self, output):
