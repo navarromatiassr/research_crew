@@ -6,3 +6,4 @@ __pycache__
 output/
 *.md
 !README.md
+*.json
