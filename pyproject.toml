@@ -7,6 +7,7 @@ requires-python = ">=3.10,<3.14"
 dependencies = [
     "crewai[anthropic,tools]>=1.15.21,<2.0.0",
     "fastapi>=0.115",
+    "google-cloud-bigquery>=3.45.2",
     "uvicorn[standard]>=0.30",
 ]
 
@@ -18,6 +19,7 @@ replay = "research_crew.main:replay"
 test = "research_crew.main:test"
 run_with_trigger = "research_crew.main:run_with_trigger"
 serve = "research_crew.api:serve"
+preguntar = "research_crew.datos_crew:preguntar"
 
 [build-system]
 requires = ["hatchling"]
