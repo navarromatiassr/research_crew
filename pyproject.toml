@@ -20,6 +20,8 @@ test = "research_crew.main:test"
 run_with_trigger = "research_crew.main:run_with_trigger"
 serve = "research_crew.api:serve"
 preguntar = "research_crew.datos_crew:preguntar"
+estado = "research_crew.flows.estado_campana:estado"
+plot_estado = "research_crew.flows.estado_campana:plot"
 
 [build-system]
 requires = ["hatchling"]

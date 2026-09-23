@@ -8,12 +8,15 @@ Uso local:  uv run preguntar "¿Cuántas filas tiene la tabla X?"
 
 import json
 import sys
+from pathlib import Path
 
 from crewai import Agent, Crew, Process, Task
 from pydantic import BaseModel, Field
 
 from research_crew.crew import build_llm
 from research_crew.tools.bigquery_tool import bigquery_tools
+
+GLOSARIO = Path(__file__).parent / "config" / "glosario_campana.md"
 
 
 class RespuestaDatos(BaseModel):
@@ -25,7 +28,13 @@ class RespuestaDatos(BaseModel):
     confianza: str = Field(description="alta, media o baja, y por qué en pocas palabras")
 
 
-def build_crew() -> Crew:
+def build_crew(contexto: str = "", glosario: bool = False) -> Crew:
+    """Arma el crew analista.
+
+    contexto: texto ya calculado por código (por ejemplo, la lista de campañas vigentes)
+              que se le da al agente para que no tenga que descubrirlo consultando.
+    glosario: si True, se incluye el glosario del negocio en la tarea.
+    """
     analista = Agent(
         role="Analista de datos de BigQuery",
         goal="Responder preguntas de negocio consultando el dataset configurado, sin inventar datos",
@@ -38,14 +47,17 @@ def build_crew() -> Crew:
         tools=bigquery_tools(),
         llm=build_llm(),
         max_iter=8,
-        max_execution_time=180,
+        max_execution_time=240,
         verbose=True,
     )
+    partes = ["Respondé esta pregunta usando las herramientas de BigQuery: {pregunta}"]
+    if glosario and GLOSARIO.exists():
+        partes.append("\n## Glosario del negocio (usalo para interpretar)\n" + GLOSARIO.read_text(encoding="utf-8"))
+    if contexto:
+        partes.append("\n## Contexto ya calculado por el sistema (no hace falta volver a consultarlo)\n" + contexto)
+    partes.append("\nPasos: 1) listar tablas, 2) describir las relevantes, 3) consultar, 4) responder.")
     tarea = Task(
-        description=(
-            "Respondé esta pregunta usando las herramientas de BigQuery: {pregunta}\n"
-            "Pasos: 1) listar tablas, 2) describir las relevantes, 3) consultar, 4) responder."
-        ),
+        description="\n".join(partes),
         expected_output="Respuesta en español con los números, el SQL usado, tablas, supuestos y confianza.",
         agent=analista,
         output_pydantic=RespuestaDatos,
