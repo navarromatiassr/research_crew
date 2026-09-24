@@ -8,8 +8,7 @@ Tres pasos, en este orden:
 2. responder  (crew)    el analista responde la pregunta con SQL propio, acotado a las
                         tablas permitidas y con columnas sensibles ocultas.
 3. trazar     (código)  guarda la traza de la corrida: pregunta, SQL, respuesta, tokens,
-                        duración. En local va a output/trazas.jsonl; si BQ_TRACE_TABLE está
-                        definida, también se inserta en esa tabla de BigQuery.
+                        duración, en output/trazas.jsonl. No se escribe nada en BigQuery.
 
 Uso local:  uv run estado "¿Cuántos handoffs hubo ayer por campaña?"
 """
@@ -120,11 +119,6 @@ class EstadoCampanaFlow(Flow[EstadoCampana]):
         with path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(traza, ensure_ascii=False) + "\n")
         self.state.traza_path = str(path)
-        tabla = os.getenv("BQ_TRACE_TABLE")
-        if tabla:
-            errores = bigquery.Client().insert_rows_json(tabla, [{**traza, "tablas_usadas": json.dumps(traza["tablas_usadas"]), "supuestos": json.dumps(traza["supuestos"], ensure_ascii=False)}])
-            if errores:
-                traza["traza_bq_error"] = str(errores)[:300]
         return {"respuesta": self.state.respuesta, "traza": traza}
 
 
